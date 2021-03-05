@@ -1,0 +1,18 @@
+{
+    "tickers": [
+        {
+            "symbol": "EURUSDT",
+            "buy_or_sell": "SELL",
+            "transaction_amount": 10,
+            "time_interval_seconds": 5184,
+            "last_purchase_time": 0.3431911
+        },
+        {
+            "symbol": "IOTAUSDT",
+            "buy_or_sell": "BUY",
+            "transaction_amount": "MAX",
+            "time_interval_seconds": 5184,
+            "last_purchase_time": 0.7423284
+        }
+    ]
+}
