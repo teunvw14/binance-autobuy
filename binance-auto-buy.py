@@ -8,15 +8,17 @@ from getpass import getpass
 
 
 g_binance_api_base_url = "https://api.binance.com/api/v3"
-logging.basicConfig(filename="binance-auto-buy.log", filemode='a', level=logging.DEBUG)
+logging.basicConfig(filename="binance-auto-buy.log", filemode='a')
+logger = logging.getLogger(__name__)
+logger.level = logging.DEBUG
 
 
 def get_binance_endpoint_json(endpoint, payload={}, headers={}):
     full_endpoint_url = g_binance_api_base_url + endpoint
     result = requests.get(full_endpoint_url, params=payload, headers=headers)
     if result.status_code != 200:
-        logging.error(f"Probably something went wrong: binance endpoint {full_endpoint_url} returned status code {result.status_code}") 
-        logging.error(result.text)
+        logger.error(f"Probably something went wrong: binance endpoint {full_endpoint_url} returned status code {result.status_code}") 
+        logger.error(result.text)
     return result.json()
 
 
@@ -191,7 +193,7 @@ def do_transaction(symbol, buy_or_sell, transaction_amount, api_key, api_secret_
     signature = get_data_signature(data, api_secret_key)
     data.update({"signature": signature})
     headers = {"X-MBX-APIKEY": api_key}
-    logging.info(f"Attempting transaction {buy_or_sell} of symbol {symbol} | amount: {adjusted_transaction_amount} | timestamp: {timestamp_now}")
+    logger.info(f"Attempting transaction {buy_or_sell} of symbol {symbol} | amount: {adjusted_transaction_amount} | timestamp: {timestamp_now}")
     buy_result_json = post_binance_endpoint_json("/order", data, headers=headers)
     return buy_result_json
 
@@ -212,9 +214,9 @@ def is_transaction_successful(transaction_result_json):
 def main():
     
     # # Check for connection with the api
-    logging.info("Pinging binance...")
+    logger.info("Pinging binance...")
     result = requests.get("https://api.binance.com/api/v3/ping")
-    logging.info(f"Ping result: {result}")
+    logger.info(f"Ping result: {result}")
 
     # Get the API key and Secret key discreetly:
     api_key = getpass("API Key: ")
@@ -244,14 +246,14 @@ def main():
                 if is_transaction_successful(transaction_result_json):
                     ticker["last_purchase_time"] = current_time_epoch
                     update_json_file(symbol, current_time_epoch)
-                    logging.info(f"Successfully bought {symbol}.")
+                    logger.info(f"Successfully bought {symbol}.")
                 else:
-                    logging.warning(f"Something went wrong purchasing symbol {symbol}: ")
-                    logging.warning(transaction_result_json)
+                    logger.warning(f"Something went wrong purchasing symbol {symbol}: ")
+                    logger.warning(transaction_result_json)
             else:
                 next_purchase_time = ticker["last_purchase_time"] + ticker["time_interval_seconds"]
-                seconds_until_next_transaction = next_purchase_time - current_time_epoch
-                logging.debug(f"Skipping ticker {symbol}, next transaction is in {seconds_until_next_transaction} seconds.")
+                seconds_until_next_transaction = int(next_purchase_time - current_time_epoch)
+                logger.debug(f"Skipping ticker {symbol}, next transaction is in {seconds_until_next_transaction} seconds.")
         # Sleep for a second
         time.sleep(10)
 
