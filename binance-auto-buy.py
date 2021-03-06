@@ -161,7 +161,9 @@ def get_adjusted_transaction_amount(symbol, buy_or_sell, transaction_amount, api
     elif type(transaction_amount) == str and transaction_amount == "MAX":
         adjusted_amount = get_available_funds(symbol, buy_or_sell, api_key, api_secret_key)
     excess_decimals = adjusted_amount % get_amount_step_size(symbol)
-    adjusted_amount = adjusted_amount - excess_decimals
+    # Remove excess decimals and round. Without rounding the result can turn
+    # out to floats like 1.000000000000001
+    adjusted_amount = round(adjusted_amount - excess_decimals, 10)
     return adjusted_amount
 
 
