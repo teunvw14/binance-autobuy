@@ -250,7 +250,6 @@ def main():
                 next_purchase_time = ticker["last_purchase_time"] + ticker["time_interval_seconds"]
                 seconds_until_next_transaction = next_purchase_time - current_time_epoch
                 logging.debug(f"Skipping ticker {symbol}, next transaction is in {seconds_until_next_transaction} seconds.")
-        # Flush the logger, see stackoverflow.com/a/13753911/9069452
         # Sleep for a second
         time.sleep(10)
 
