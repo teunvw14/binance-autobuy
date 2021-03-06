@@ -8,6 +8,7 @@ from getpass import getpass
 
 
 g_binance_api_base_url = "https://api.binance.com/api/v3"
+logging.basicConfig(filename="binance-auto-buy.log", filemode='a')
 
 
 def get_binance_endpoint_json(endpoint, payload={}, headers={}):
