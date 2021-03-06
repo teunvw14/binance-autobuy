@@ -9,6 +9,7 @@ from getpass import getpass
 
 g_binance_api_base_url = "https://api.binance.com/api/v3"
 logging.basicConfig(filename="binance-auto-buy.log", filemode='a')
+logger = logging.getLogger()
 
 
 def get_binance_endpoint_json(endpoint, payload={}, headers={}):
@@ -250,6 +251,8 @@ def main():
                 next_purchase_time = ticker["last_purchase_time"] + ticker["time_interval_seconds"]
                 seconds_until_next_transaction = next_purchase_time - current_time_epoch
                 logging.debug(f"Skipping ticker {symbol}, next transaction is in {seconds_until_next_transaction} seconds.")
+        # Flush the logger, see stackoverflow.com/a/13753911/9069452
+        logger.handlers[0].flush()
         # Sleep for a second
         time.sleep(10)
 
