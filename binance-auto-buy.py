@@ -3,6 +3,7 @@ import json
 import requests
 import hmac
 import hashlib
+import logging
 from getpass import getpass
 
 
@@ -13,8 +14,8 @@ def get_binance_endpoint_json(endpoint, payload={}, headers={}):
     full_endpoint_url = g_binance_api_base_url + endpoint
     result = requests.get(full_endpoint_url, params=payload, headers=headers)
     if result.status_code != 200:
-        print(f"Probably something went wrong: binance endpoint {full_endpoint_url} returned status code {result.status_code}") 
-        print(result.text)
+        logging.error(f"Probably something went wrong: binance endpoint {full_endpoint_url} returned status code {result.status_code}") 
+        logging.error(result.text)
     return result.json()
 
 
@@ -171,6 +172,7 @@ def do_transaction(symbol, buy_or_sell, transaction_amount, api_key, api_secret_
         return f"!ERROR! Not enough funds to {buy_or_sell} on ticker {symbol}. \n" \
              + f"Transaction amount is set to {transaction_amount}, but you" \
              + f" only have {symbol_available_funds} available within your account."
+
     timestamp_now = int(time.time() * 1000)
     data = {
         "symbol": symbol,
@@ -186,7 +188,7 @@ def do_transaction(symbol, buy_or_sell, transaction_amount, api_key, api_secret_
     signature = get_data_signature(data, api_secret_key)
     data.update({"signature": signature})
     headers = {"X-MBX-APIKEY": api_key}
-    print(f"Attempting transaction {buy_or_sell} of symbol {symbol} | amount: {adjusted_transaction_amount} | timestamp: {timestamp_now}")
+    logging.info(f"Attempting transaction {buy_or_sell} of symbol {symbol} | amount: {adjusted_transaction_amount} | timestamp: {timestamp_now}")
     buy_result_json = post_binance_endpoint_json("/order", data, headers=headers)
     return buy_result_json
 
@@ -207,8 +209,9 @@ def is_transaction_successful(transaction_result_json):
 def main():
     
     # # Check for connection with the api
+    logging.info("Pinging binance...")
     result = requests.get("https://api.binance.com/api/v3/ping")
-    print(f"Ping result: {result}")
+    logging.info(f"Ping result: {result}")
 
     # Get the API key and Secret key discreetly:
     api_key = getpass("API Key: ")
@@ -216,20 +219,20 @@ def main():
 
     # Get all the tickers that should be bought, and check if their 
     # attribute values are reasonable
-    tickers_to_buy = {}
+    tickers_to_transact = {}
     with open("auto_buy_tickers.json", 'r') as tickers_json:
-        tickers_to_buy = json.load(tickers_json)["tickers"]
+        tickers_to_transact = json.load(tickers_json)["tickers"]
 
     available_tickers = get_available_tickers()
-    exit_on_ticker_setup_issue(tickers_to_buy, available_tickers)
+    exit_on_ticker_setup_issue(tickers_to_transact, available_tickers)
 
     while True:
-        # Buy loop:
-        for ticker in tickers_to_buy:
+        # Transaction loop:
+        for ticker in tickers_to_transact:
             symbol = ticker["symbol"]
             current_time_epoch = time.time()
-            seconds_since_last_buy = current_time_epoch - ticker["last_purchase_time"]
-            if seconds_since_last_buy > ticker["time_interval_seconds"]:
+            seconds_since_last_transaction = current_time_epoch - ticker["last_purchase_time"]
+            if seconds_since_last_transaction > ticker["time_interval_seconds"]:
                 transaction_result_json = do_transaction(symbol, 
                     ticker["buy_or_sell"], 
                     ticker["transaction_amount"], 
@@ -238,10 +241,14 @@ def main():
                 if is_transaction_successful(transaction_result_json):
                     ticker["last_purchase_time"] = current_time_epoch
                     update_json_file(symbol, current_time_epoch)
-                    print(f"Successfully bought {symbol}.")
+                    logging.info(f"Successfully bought {symbol}.")
                 else:
-                    print(f"Something went wrong purchasing symbol {symbol}: ")
-                    print(transaction_result_json)
+                    logging.warning(f"Something went wrong purchasing symbol {symbol}: ")
+                    logging.warning(transaction_result_json)
+            else:
+                next_purchase_time = ticker["last_purchase_time"] + ticker["time_interval_seconds"]
+                seconds_until_next_transaction = next_purchase_time - current_time_epoch
+                logging.debug(f"Skipping ticker {symbol}, next transaction is in {seconds_until_next_transaction} seconds.")
         # Sleep for a second
         time.sleep(10)
 
