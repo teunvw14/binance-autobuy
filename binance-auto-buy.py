@@ -8,8 +8,8 @@ from getpass import getpass
 
 
 g_binance_api_base_url = "https://api.binance.com/api/v3"
-logging.basicConfig(format="%(asctime) %(levelname)s:%(message)s",
-                    datefmt="%Y-%d-%m %I:%M:%S",
+logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s",
+                    datefmt="%Y-%d-%m %H:%M:%S",
                     filename="binance-auto-buy.log",
                     filemode='a')
 logger = logging.getLogger(__name__)
